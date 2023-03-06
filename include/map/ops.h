@@ -36,59 +36,56 @@
 extern "C" {
 #endif
 
-// Calculates the index of element in the map.
+// Insert a new key-value pair into the map.
 //
-// Uses `key hash` and the `length` of the bucket to determine the hash value
-// for the element in the map.
-size_t CalculateIndex(hash_t hash, size_t n);
+// Args:
+//  map        - A pointer to the map to insert the key-value pair into.
+//  key        - A pointer to the key to insert.
+//  key_size   - The size of the key in bytes.
+//  value      - A pointer to the value to insert.
+//  value_size - The size of the value in bytes.
+//
+// Remarks:
+//  If the map, key, or value pointers are NULL, this function will immediately
+//  return without doing anything. The key and value pointers must point to
+//  valid memory of the specified sizes. If a key already exists in the map, its
+//  value will be replaced with the new value.
+//
+// Thread Safety:
+//  This function locks the mutex associated with the map while it is performing
+//  its operations to ensure thread safety.
+void MapInsert(Map *const map, const void *const key, const size_t key_size,
+               const void *const value, const size_t value_size);
 
-// Injects the given set of key-value pair to the given `Map` instance if
-// already exists, overrides it.
+// Retrieve the value associated with the given key in the map.
 //
-// Generates a hash value using the given key and finds the position of a new
-// `MapEntry` instance in the `buckets` linked list.  To combat collision we
-// extend the already saved `MapEntry` by hooking it up with the new `MapEntry`
-// instance while keeping the order sorted based on the hash computed.
+// Params:
+//  map - A pointer to the map.
+//  key - A pointer to the key.
 //
-// Resizes the `Map` instance in case the load factor exceeds the
-// `MAX_LOAD_FACTOR`.
-void MapPut(Map *const map, const void *const key, const void *const value);
+// Returns:
+//  A pointer to the value associated with the key, or NULL if the key is not
+//  found in the map.
+//
+// Remarks:
+//  This function assumes that the `hash_func` and `key_eq_func` fields of the
+//  map are properly set to the hash function and key equality function used to
+//  initialize the map. Also note that this function does not check if the map
+//  or key pointers are NULL, as passing NULL to these parameters is considered
+//  undefined behavior.
+void *MapGet(Map *const map, const void *key);
 
-// Returns a `void*` to the value mapped by the given `key`.
+// Remove an entry from the map with the given key.
 //
-// Traverse through the entries of the bucket at the computed `idx` value and
-// searches for a `hash` value that matches the computed `hash` value.  If we
-// find a value that is greater than the `hash` computed; not equal but greater
-// than then we immediately return `NULL` as having a value greater than the
-// computed `hash` using the `key` can only be possible when we have traversed
-// long enough but did not find any `hash` value equals to the computed `hash`.
+// Params:
+//  map      - The map from which to remove the entry.
+//  key      - The key of the entry to remove.
+//  key_size - The size of the key in bytes.
 //
-// This should be very reminiscent of what we are doing in function
-// `MapEntry *MapGetEntry(Map *const map, void *const key)`.
-void *MapGet(Map *const map, const void *const key);
-
-// Returns a `MapEntry*` to the `MapEntry` instance that holds the given `key`.
-//
-// Traverse through the entries of the bucket at the computed `idx` value and
-// searches for a `hash` value that matches the computed `hash` value.  If we
-// find a value that is greater than the `hash` computed; not equal but greater
-// than then we immediately return `NULL` as having a value greater than the
-// computed `hash` using the `key` can only be possible when we have traversed
-// long enough but did not find any `hash` value equals to the computed `hash`.
-MapEntry *MapGetEntry(Map *const map, const void *const key);
-
-// Returns a `void*` and removes to/the value mapped by the given `key`.
-//
-// `MapEntry` with the associated key i.e., `key` will be deleted from the
-// free-store while returning a `void*` to the value mapped with the given
-// `key`.
-//
-// This should be very reminiscent of what we are doing in function `MapEntry
-// *MapGetEntry(Map *const map, void *const key)` except after locating the
-// entry in the `buckets` list we free the memory occupied by that `MapEntry`.
-// This function is not responsible to free up the free-store occupied by the
-// value inside of the `MapEntry` the caller should take care of that.
-void *MapRemove(Map *const map, void *const key);
+// Effects:
+//  * Removes an entry from the map with the given key, if it exists.
+//  * Frees the memory used by the removed entry.
+void MapRemove(Map *const map, const void *key, const size_t key_size);
 
 #ifdef __cplusplus
 }
